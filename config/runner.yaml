@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: knative-workflow-runner 
+  labels:
+    app: runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: runner 
+  template:
+    metadata:
+      labels:
+        app: runner 
+    spec:
+      containers:
+      - name:  runner
+        image: ko://github.com/salaboy/knative-workflow-runner
+        env:
+          - name: WORKFLOW
+            value: "states:
+  \"\":
+    events:
+      JoinedQueue: InQueue
+  InQueue:
+    events:
+      ExitedQueue: BuyingTickets
+      AbandonedQueue: NoTicketsPurchased
+  BuyingTickets:
+    events:
+      TicketsReserved: PayingTickets
+  PayingTickets:
+    events:
+      PaymentRequested: WaitingForPaymentAuth
+  WaitingForPaymentAuth:
+    events:
+      PaymentAuthorized: TicketsPurchased
+  TicketsPurchased:
+    events: {}
+  NoTicketsPurchased:
+    events: { }"
+        ports:
+        - containerPort: 8080
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: knative-workflow-runner-service
+spec:
+  selector:
+    app: runner
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

@@ -1,0 +1,23 @@
+states:
+  "":
+    events:
+      CreateOrder: CreatingOrder
+  ChargingCard:
+    events:
+      FailTransaction: TransactionFailed
+      ShipOrder: OrderShipped
+  CreatingOrder:
+    events:
+      FailOrder: OrderFailed
+      PlaceOrder: OrderPlaced
+  OrderFailed:
+    events:
+      CreateOrder: CreatingOrder
+  OrderPlaced:
+    events:
+      ChargeCard: ChargingCard
+  OrderShipped:
+    events: {}
+  TransactionFailed:
+    events:
+      ChargeCard: ChargingCard
