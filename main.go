@@ -13,8 +13,8 @@ import (
 	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/salaboy/workflow-runner/pkg/workflow"
-	"github.com/salaboy/workflow-runner/pkg/workflow/workflowextension"
+	"github.com/salaboy/knative-workflow-runner/pkg/workflow"
+	"github.com/salaboy/knative-workflow-runner/pkg/workflow/workflowextension"
 )
 
 // This is going to keep in memory the statemachines that this runner is handling.
