@@ -30,8 +30,8 @@ func main() {
 	workflows = make(map[string]*workflow.StateMachine)
 
 	r := mux.NewRouter()
-	r.HandleFunc("/workflows/new", WorkflowsNewHandler).Methods("POST")
-	r.HandleFunc("/workflows/", WorkflowEventsHandler).Methods("POST")
+	r.HandleFunc("/workflows", WorkflowsNewHandler).Methods("POST")
+	r.HandleFunc("/workflows/events", WorkflowEventsHandler).Methods("POST")
 	r.HandleFunc("/workflows", WorkflowsGETHandler).Methods("GET")
 	log.Printf("Workflow Runner Started in port 8080!")
 	http.Handle("/", r)
