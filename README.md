@@ -12,3 +12,15 @@ Each Runner instance expose the following REST endpoints:
 - GET `/workflows/` Get all avaialble Workflow instances
 
 # Running the project from Source
+
+```
+go build
+```
+
+```
+go run main.go
+```
+
+```
+ko publish .
+```
