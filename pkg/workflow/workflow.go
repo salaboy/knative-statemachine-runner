@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/RaveNoX/go-jsonmerge"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/google/uuid"
@@ -37,7 +36,6 @@ type WorkflowContext map[string]interface{}
 // EventContext represents the context to be passed to the action implementation.
 type EventContext map[string]interface{}
 
-
 // Events represents a mapping of events and states.
 type Events map[EventType]StateType
 
@@ -51,10 +49,10 @@ type States map[StateType]State
 
 // Workflow represent a workflow definition, just a set of states
 type Workflow struct {
-	Id string `json:"id"`
-	Name string `json:"name"`
+	Id      string `json:"id"`
+	Name    string `json:"name"`
 	Version string `json:"version"`
-	States States `json:"states"`
+	States  States `json:"states"`
 }
 
 // StateMachine represents the state machine.
@@ -97,11 +95,18 @@ func (s *StateMachine) SendEvent(event EventType, eventCtx EventContext) error {
 	defer s.mutex.Unlock()
 
 	for {
+
+		log.Printf("Event Received: %s", event)
+		log.Printf("Current State: %s", s.States[s.Current])
+		log.Printf("Available Events in State: %s", s.States[s.Current].Events)
+
 		// Determine the next state for the event given the machine's current state.
 		nextState, err := s.getNextState(event)
 		if err != nil {
+			log.Printf("Event Rejected: %s for state %s ", event, )
 			return ErrEventRejected
 		}
+		log.Printf("Next State: %s", nextState)
 
 		//// Identify the state definition for the next state.
 		// I might need this if I want to read the state definition to emit a specific event
@@ -118,14 +123,14 @@ func (s *StateMachine) SendEvent(event EventType, eventCtx EventContext) error {
 		if s.WorkflowContext == nil {
 			s.WorkflowContext = WorkflowContext(eventCtx)
 
-			fmt.Printf("Workflow Context JSON %s", s.WorkflowContext)
+			log.Printf("Workflow Context JSON %s", s.WorkflowContext)
 		} else {
-			fmt.Printf("Event Context JSON %s \n", eventCtx)
-			fmt.Printf("Workflow Context JSON %s \n ", s.WorkflowContext)
+			log.Printf("Event Context JSON %s \n", eventCtx)
+			log.Printf("Workflow Context JSON %s \n ", s.WorkflowContext)
 			merged, info := jsonmerge.Merge(eventCtx, s.WorkflowContext)
 
-			fmt.Printf("Replacements JSON %+v \n", info)
-			fmt.Printf("Workflow Context Result JSON %s \n", merged)
+			log.Printf("Replacements JSON %+v \n", info)
+			log.Printf("Workflow Context Result JSON %s \n", merged)
 			s.WorkflowContext = WorkflowContext(merged.(EventContext))
 		}
 
@@ -135,6 +140,8 @@ func (s *StateMachine) SendEvent(event EventType, eventCtx EventContext) error {
 }
 
 func (s *StateMachine) emitCloudEvent() error {
+
+
 
 	c, err := cloudevents.NewClientHTTP()
 	if err != nil {
@@ -162,15 +169,19 @@ func (s *StateMachine) emitCloudEvent() error {
 	}
 	event.SetData(cloudevents.ApplicationJSON, marshal)
 
+	log.Printf("Emitting an Event: %s to SINK: %s", event, s.SINK)
 
 
-	fmt.Printf("Emitting an Event: %s", event)
 	// Set a target.
 	ctx := cloudevents.ContextWithTarget(context.Background(), s.SINK)
 
 	// Send that Event.
-	if result := c.Send(ctx, event); cloudevents.IsUndelivered(result) {
-		log.Println("failed to send, %v", result)
+	result := c.Send(ctx, event)
+	if result != nil {
+		log.Printf("Resutl: %s", result)
+		if cloudevents.IsUndelivered(result) {
+			log.Printf("failed to send, %v", result)
+		}
 	}
 
 	return nil

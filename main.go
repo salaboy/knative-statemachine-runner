@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -33,6 +32,7 @@ func main() {
 	r.HandleFunc("/workflows", WorkflowsNewHandler).Methods("POST")
 	r.HandleFunc("/workflows/events", WorkflowEventsHandler).Methods("POST")
 	r.HandleFunc("/workflows", WorkflowsGETHandler).Methods("GET")
+	r.HandleFunc("/workflows/{id}", WorkflowByIdGETHandler).Methods("GET")
 	log.Printf("Workflow Runner Started in port 8080!")
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -67,36 +67,36 @@ func WorkflowsNewHandler(writer http.ResponseWriter, request *http.Request) {
 	smb := workflow.StateMachineBuilder{}
 	wf := workflow.StateMachine{}
 
+
 	if WORKFLOW != "" {
-		log.Printf("Reading Workflow from ENV: %s", WORKFLOW)
+		log.Printf("Reading Workflow from ENV: \n %s", WORKFLOW)
 		wf, _ = smb.ReadFromENVString(WORKFLOW)
 	} else {
 		log.Printf("Reading Workflow from File: %s", "workflow-buy-tickets.yaml")
 		wf, _ = smb.ReadFromYAML("workflow-buy-tickets.yaml")
 
 	}
+	wf.SINK = SINK
+
 	id, _ := uuid.NewUUID()
 	wf.Id = id.String()
 
-	log.Printf("New Workflow: %s", wf.Id)
+	log.Printf("New Workflow Instance: %s", wf.Id)
+	log.Printf("Workflow Instance SINK Set to: %s", wf.SINK)
 	workflows[wf.Id] = &wf
 
-	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusOK)
-
-	io.WriteString(writer, fmt.Sprintf("%+v", wf))
+	respondWithJSON(writer, http.StatusOK, &wf)
 
 }
 
 func WorkflowsGETHandler(writer http.ResponseWriter, request *http.Request) {
+	respondWithJSON(writer, http.StatusOK, &workflows)
+}
 
-	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusOK)
-
-	for _, workflow := range workflows {
-		io.WriteString(writer, fmt.Sprintf("%s", workflow))
-	}
-
+func WorkflowByIdGETHandler(writer http.ResponseWriter, request *http.Request) {
+	id := mux.Vars(request)["id"]
+	workflowRun := workflows[id]
+	respondWithJSON(writer, http.StatusOK, &workflowRun)
 }
 
 func respondWithError(w http.ResponseWriter, code int, message string) {

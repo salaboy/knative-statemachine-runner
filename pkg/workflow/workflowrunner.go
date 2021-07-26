@@ -1,7 +1,6 @@
 package workflow
 
 import (
-	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
@@ -25,7 +24,7 @@ func (st *StateMachineBuilder) ReadFromYAML(workflowFilePath string) (StateMachi
 	if err != nil {
 		return StateMachine{}, err
 	}
-	fmt.Printf(">> StateMachine :\n%v\n\n", stateMachine)
+	log.Printf(">> StateMachine :\n%v\n\n", stateMachine)
 
 	return stateMachine, nil
 }
@@ -37,7 +36,7 @@ func (st *StateMachineBuilder) ReadFromENVString(workflowContent string) (StateM
 	if err != nil {
 		return StateMachine{}, err
 	}
-	fmt.Printf(">> StateMachine :\n%v\n\n", stateMachine)
+	log.Printf(">> StateMachine :\n%v\n\n", stateMachine)
 
 	return stateMachine, nil
 }
