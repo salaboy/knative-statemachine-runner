@@ -6,38 +6,32 @@ import (
 	"log"
 )
 
-type StateMachineBuilder struct{
 
-}
-
-func (st *StateMachineBuilder) ReadFromYAML(workflowFilePath string) (StateMachine, error) {
-    stateMachine := StateMachine{}
+func ReadStatesFromYAML(workflowFilePath string) (States, error){
+	statesDefinition := States{}
 	content, err := ioutil.ReadFile(workflowFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Convert []byte to string and print to screen
 	workflowYAML := string(content)
 
-	err = yaml.Unmarshal([]byte(workflowYAML), &stateMachine)
+	err = yaml.Unmarshal([]byte(workflowYAML), &statesDefinition)
 	if err != nil {
-		return StateMachine{}, err
+		return States{}, err
 	}
-	log.Printf(">> StateMachine :\n%v\n\n", stateMachine)
+	log.Printf(">> StatesDefinition :\n%v\n\n", statesDefinition)
 
-	return stateMachine, nil
+	return statesDefinition, nil
+
 }
 
-func (st *StateMachineBuilder) ReadFromENVString(workflowContent string) (StateMachine, error) {
-	stateMachine := StateMachine{}
-
-	err := yaml.Unmarshal([]byte(workflowContent), &stateMachine)
+func ReadStatesFromEnvString(statesContent string) (States, error){
+	statesDefinition := States{}
+	err := yaml.Unmarshal([]byte(statesContent), &statesDefinition)
 	if err != nil {
-		return StateMachine{}, err
+		return States{}, err
 	}
-	log.Printf(">> StateMachine :\n%v\n\n", stateMachine)
-
-	return stateMachine, nil
+	return statesDefinition, nil
 }
 

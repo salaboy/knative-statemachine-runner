@@ -44,15 +44,22 @@ type State struct {
 	Events Events `json:"events,omitempty"`
 }
 
+
 // States represents a mapping of states and their implementations.
 type States map[StateType]State
 
 // Workflow represent a workflow definition, just a set of states
 type Workflow struct {
-	Id      string `json:"id"`
 	Name    string `json:"name"`
 	Version string `json:"version"`
 	States  States `json:"states"`
+}
+
+type RunnerInfo struct {
+	Id string `json:"id"`
+	Name    string `json:"name"`
+	Version string `json:"version"`
+
 }
 
 // StateMachine represents the state machine.
@@ -103,11 +110,12 @@ func (s *StateMachine) SendEvent(event EventType, eventCtx EventContext) error {
 		// Determine the next state for the event given the machine's current state.
 		nextState, err := s.getNextState(event)
 		if err != nil {
-			log.Printf("Event Rejected: %s for state %s ", event, )
+			log.Printf("Event Rejected: %s for state %s ", event, s.States[s.Current] )
 			return ErrEventRejected
 		}
 		log.Printf("Next State: %s", nextState)
 
+		// Here I am going to change the state, so I need to emit the Post Events.
 		//// Identify the state definition for the next state.
 		// I might need this if I want to read the state definition to emit a specific event
 		//state, ok := s.States[nextState]
@@ -133,7 +141,10 @@ func (s *StateMachine) SendEvent(event EventType, eventCtx EventContext) error {
 			log.Printf("Workflow Context Result JSON %s \n", merged)
 			s.WorkflowContext = WorkflowContext(merged.(EventContext))
 		}
+		// I have changed the state, so i need to emit the Pre Events
 
+
+		// Emit Workflow State Change Event
 		s.emitCloudEvent()
 
 	}

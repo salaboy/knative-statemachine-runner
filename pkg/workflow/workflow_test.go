@@ -14,7 +14,7 @@ const (
 )
 
 type DataContext struct {
-	Data map[string]string `json:"data,omitempty"`
+	Data map[string]interface{} `json:"data,omitempty"`
 	Err   error    `json:"error,omitempty"`
 }
 
@@ -47,7 +47,7 @@ func TestStateMachine(t *testing.T) {
 					result:  MyState2,
 					events: []EventType{MoveToState2},
 					context: &DataContext{
-						Data: map[string]string{
+						Data: map[string]interface{}{
 							"hello":   "world",
 						},
 
@@ -58,7 +58,8 @@ func TestStateMachine(t *testing.T) {
 
 	for _, item := range dataItems {
 		for _, event := range item.events {
-			item.input.SendEvent(event, item.context)
+			eventContext := EventContext(item.context.Data)
+			item.input.SendEvent(event, eventContext)
 		}
 		if item.input.Current != item.result{
 			t.Error("Wrong end state: ", item.input.Current)
