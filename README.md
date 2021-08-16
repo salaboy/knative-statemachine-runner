@@ -1,16 +1,16 @@
-# Knative Workflow Runner
+# KNative StateMachine Runner
 
-This project runs a workflow definition and keeps track of its state. 
+This project runs a StateMachine definition and keeps track of its state. 
 
-For more information look at the [Knative Workflow Controller](http://github.com/salaboy/knative-workflow) project which creates new Workflow Runners.
+For more information look at the [Knative StateMachine Controller](http://github.com/salaboy/knative-state) project which creates new StateMachine Runners.
 
 # APIs
 
 Each Runner instance expose the following REST endpoints: 
-- POST `/workflows/` Creates a new instance of a workflow with a unique id
-- POST `/workflows/events` Consume Cloud Events 
-- GET `/workflows/` Get all available Workflow instances
-- GET `/workflows/{id}` Get workflow instance by id
+- POST `/statemachines/` Creates a new **StateMachineInstance**, returns a unique id
+- POST `/statemachines/events` Consume Cloud Events for a given **StateMachineInstance**
+- GET `/statemachines/` Get all available **StateMachineInstances**
+- GET `/statemachines/{id}` Get **StateMachineInstance** by id
 
 # Running the project from Source
 
@@ -31,7 +31,7 @@ ko publish .
 
 # Example
 ```
-curl -X POST http://localhost:8080/workflows
+curl -X POST http://localhost:8080/statemachines
 ```
 
 
@@ -41,7 +41,7 @@ curl -X POST -H "Content-Type: application/json" \
   -H "ce-source: curl-command" \
   -H "ce-type: JoinedQueue" \
   -H "ce-id: 123-abc" \
-  -H "ce-workflowid: 194c70ae-edfa-11eb-ae55-367ddaa504e1" \
+  -H "ce-statemachineid: 7e3e2258-fe78-11eb-a85e-acde48001122" \
   -d '{"name":"Salaboy"}' \
-  http://localhost:8080/workflows/events
+  http://localhost:8080/statemachines/events
 ```

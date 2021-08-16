@@ -1,4 +1,4 @@
-package workflow
+package statemachine
 
 import (
 	"gopkg.in/yaml.v2"
@@ -7,16 +7,17 @@ import (
 )
 
 
-func ReadStatesFromYAML(workflowFilePath string) (States, error){
+func ReadStatesFromYAML(stateMachineFilePath string) (States, error){
 	statesDefinition := States{}
-	content, err := ioutil.ReadFile(workflowFilePath)
+	content, err := ioutil.ReadFile(stateMachineFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	workflowYAML := string(content)
+	stateMachineYAML := string(content)
 
-	err = yaml.Unmarshal([]byte(workflowYAML), &statesDefinition)
+
+	err = yaml.Unmarshal([]byte(stateMachineYAML), &statesDefinition)
 	if err != nil {
 		return States{}, err
 	}
@@ -32,6 +33,9 @@ func ReadStatesFromEnvString(statesContent string) (States, error){
 	if err != nil {
 		return States{}, err
 	}
+
+	log.Printf(">> StatesDefinition :\n%v\n\n", statesDefinition)
+
 	return statesDefinition, nil
 }
 

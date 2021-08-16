@@ -1,4 +1,4 @@
-package workflow
+package statemachine
 
 import (
 	"github.com/google/uuid"

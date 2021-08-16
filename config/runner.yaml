@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: knative-workflow-runner 
+  name: knative-statemachine-runner
   labels:
     app: runner
 spec:
@@ -16,9 +16,9 @@ spec:
     spec:
       containers:
       - name:  runner
-        image: ko://github.com/salaboy/knative-workflow-runner
+        image: ko://github.com/salaboy/knative-statemachine-runner
         env:
-          - name: WORKFLOW
+          - name: STATEMACHINE
             value: "states:
   \"\":
     events:
@@ -48,7 +48,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: knative-workflow-runner-service
+  name: knative-statemachine-runner-service
 spec:
   selector:
     app: runner

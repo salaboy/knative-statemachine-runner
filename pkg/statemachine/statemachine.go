@@ -1,4 +1,4 @@
-package workflow
+package statemachine
 
 import (
 	"context"
@@ -30,8 +30,8 @@ type StateType string
 // EventType represents an extensible event type in the state machine.
 type EventType string
 
-// WorkflowContext represents the context held by the state machine.
-type WorkflowContext map[string]interface{}
+// StateMachineContext represents the context held by the state machine.
+type StateMachineContext map[string]interface{}
 
 // EventContext represents the context to be passed to the action implementation.
 type EventContext map[string]interface{}
@@ -48,8 +48,8 @@ type State struct {
 // States represents a mapping of states and their implementations.
 type States map[StateType]State
 
-// Workflow represent a workflow definition, just a set of states
-type Workflow struct {
+// StateMachine represent a StateMachine definition, just a set of states
+type StateMachineDefinition struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 	States  States `json:"states"`
@@ -77,7 +77,7 @@ type StateMachine struct {
 	// mutex ensures that only 1 event is processed by the state machine at any given time.
 	mutex sync.Mutex `json:"-"`
 
-	WorkflowContext WorkflowContext `json:"context"`
+	StateMachineContext StateMachineContext `json:"context"`
 
 	// Event SINK to emit change of state
 	SINK string `json:"-"`
@@ -128,23 +128,23 @@ func (s *StateMachine) SendEvent(event EventType, eventCtx EventContext) error {
 		s.Previous = s.Current
 		s.Current = nextState
 
-		if s.WorkflowContext == nil {
-			s.WorkflowContext = WorkflowContext(eventCtx)
+		if s.StateMachineContext == nil {
+			s.StateMachineContext = StateMachineContext(eventCtx)
 
-			log.Printf("Workflow Context JSON %s", s.WorkflowContext)
+			log.Printf("StateMachine Context JSON %s", s.StateMachineContext)
 		} else {
 			log.Printf("Event Context JSON %s \n", eventCtx)
-			log.Printf("Workflow Context JSON %s \n ", s.WorkflowContext)
-			merged, info := jsonmerge.Merge(eventCtx, s.WorkflowContext)
+			log.Printf("StateMachine Context JSON %s \n ", s.StateMachineContext)
+			merged, info := jsonmerge.Merge(eventCtx, s.StateMachineContext)
 
 			log.Printf("Replacements JSON %+v \n", info)
-			log.Printf("Workflow Context Result JSON %s \n", merged)
-			s.WorkflowContext = WorkflowContext(merged.(EventContext))
+			log.Printf("StateMachine Context Result JSON %s \n", merged)
+			s.StateMachineContext = StateMachineContext(merged.(EventContext))
 		}
 		// I have changed the state, so i need to emit the Pre Events
 
 
-		// Emit Workflow State Change Event
+		// Emit StateMachine State Change Event
 		s.emitCloudEvent()
 
 	}
@@ -152,28 +152,26 @@ func (s *StateMachine) SendEvent(event EventType, eventCtx EventContext) error {
 
 func (s *StateMachine) emitCloudEvent() error {
 
-
-
 	c, err := cloudevents.NewClientHTTP()
 	if err != nil {
 		log.Fatalf("failed to create client, %v", err)
 	}
 
-	workflowContextJson, err := json.Marshal(s.WorkflowContext)
+	stateMachineContextJson, err := json.Marshal(s.StateMachineContext)
 
 	if err != nil {
-		log.Printf("failed serialize workflowContext %s", err)
+		log.Printf("failed serialize StateMachine Context %s", err)
 	}
 
-	log.Printf("Workflow Context JSON %s", string(workflowContextJson))
+	log.Printf("StateMachine Context JSON %s", string(stateMachineContextJson))
 
 	// Create an Event.
 	event := cloudevents.NewEvent()
 	newUUID, _ := uuid.NewUUID()
 	event.SetID(newUUID.String())
 	event.SetTime(time.Now())
-	event.SetSource("workflow")
-	event.SetType("workflow.event")
+	event.SetSource("statemachine-runner")
+	event.SetType("statemachine.state.change.event")
 	marshal, err := json.Marshal(s)
 	if err != nil {
 		return err
