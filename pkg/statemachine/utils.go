@@ -29,8 +29,10 @@ func ReadStatesFromYAML(stateMachineFilePath string) (States, error){
 
 func ReadStatesFromEnvString(statesContent string) (States, error){
 	statesDefinition := States{}
+	log.Printf("about to parse the following yaml: %s \n", statesContent)
 	err := yaml.Unmarshal([]byte(statesContent), &statesDefinition)
 	if err != nil {
+		log.Fatalf("failed to parse states %v \n", err)
 		return States{}, err
 	}
 

@@ -12,12 +12,13 @@ import (
 
 const (
 	StateMachineIdCloudEventsExtension = "statemachineid"
-
+	CorrelationKeyCloudEventsExtension = "correlationkey"
 )
 
 // StateMachineExtension represents the extension for extension context
 type StateMachineExtension struct {
 	StateMachineId string `json:"statemachineid"`
+	CorrelationKey string `json:"correlationkey"`
 }
 
 // AddStateMachineAttributes adds the statemachine attributes to the extension context
@@ -49,13 +50,22 @@ func GetStateMachineExtension(event event.Event) (StateMachineExtension, bool) {
 
 func (sme *StateMachineExtension) ReadTransformer() binding.TransformerFunc {
 	return func(reader binding.MessageMetadataReader, writer binding.MessageMetadataWriter) error {
-		stateMachineExtension := reader.GetExtension(StateMachineIdCloudEventsExtension)
-		if stateMachineExtension != nil {
-			tpFormatted, err := types.Format(stateMachineExtension)
+		stateMachineIdExtension := reader.GetExtension(StateMachineIdCloudEventsExtension)
+		if stateMachineIdExtension != nil {
+			tpFormatted, err := types.Format(stateMachineIdExtension)
 			if err != nil {
 				return err
 			}
 			sme.StateMachineId = tpFormatted
+		}
+
+		stateMachineCorrelationKeyExtension := reader.GetExtension(CorrelationKeyCloudEventsExtension)
+		if stateMachineCorrelationKeyExtension != nil {
+			tpFormatted, err := types.Format(stateMachineCorrelationKeyExtension)
+			if err != nil {
+				return err
+			}
+			sme.CorrelationKey = tpFormatted
 		}
 		return nil
 	}
@@ -65,6 +75,10 @@ func (sme *StateMachineExtension) WriteTransformer() binding.TransformerFunc {
 	return func(reader binding.MessageMetadataReader, writer binding.MessageMetadataWriter) error {
 		err := writer.SetExtension(StateMachineIdCloudEventsExtension, sme.StateMachineId)
 		if err != nil {
+			return nil
+		}
+		err2 := writer.SetExtension(CorrelationKeyCloudEventsExtension, sme.CorrelationKey)
+		if err2 != nil {
 			return nil
 		}
 		return nil

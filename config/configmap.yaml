@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: statemachine
+data:
+  statemachine-buy-tickets.yaml: |
+    "":
+      events:
+        JoinedQueue: InQueue
+    InQueue:
+      events:
+        ExitedQueue: BuyingTickets
+        AbandonedQueue: NoTicketsPurchased
+    BuyingTickets:
+      events:
+        TicketsReserved: PayingTickets
+    PayingTickets:
+      events:
+        PaymentRequested: WaitingForPaymentAuth
+    WaitingForPaymentAuth:
+      events:
+        PaymentAuthorized: TicketsPurchased
+    TicketsPurchased:
+      events: {}
+    NoTicketsPurchased:
+      events: { }
+

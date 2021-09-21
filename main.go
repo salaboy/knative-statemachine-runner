@@ -20,6 +20,11 @@ import (
 //   Hence this should be persisted in a key-value store (example Redis)
 var stateMachines map[string]*statemachine.StateMachine
 
+// This is going to keep in memory the statemachines that this runner is handling.
+// This map index statemachines by CorrelationKey
+//   Hence this should be persisted in a key-value store (example Redis)
+var stateMachinesCorrelationKey map[string]*statemachine.StateMachine
+
 // This should identify the runner, so if we persist state in a storage we split it by runnners
 //  - This id should probably related to worklow metadata
 var runnerId string
@@ -53,7 +58,7 @@ func main() {
 
 }
 
-func initStateMachine(){
+func initStateMachine() {
 	if STATEMACHINE_DEF != "" {
 		states, err := statemachine.ReadStatesFromEnvString(STATEMACHINE_DEF)
 		if err != nil {
@@ -64,7 +69,7 @@ func initStateMachine(){
 		stateMachineDefinition.Version = STATEMACHINE_VERSION
 		stateMachineDefinition.States = states
 		log.Printf("StateMachine loaded from STATEMACHINE_DEF env var \n%s", states)
-	}else{
+	} else {
 		//Load demo statemachine: statemachine-buy-tickets.yaml
 		states, err := statemachine.ReadStatesFromYAML("statemachine-buy-tickets.yaml")
 		if err != nil {
@@ -77,16 +82,18 @@ func initStateMachine(){
 		log.Printf("StateMachine loaded from path: statemachine-buy-tickets.yaml  \n%s", states)
 	}
 
-
-
 	initRedis()
 
 }
 
+func initRedis() {
 
-func initRedis(){
-	// Connect, Do I need to store the definition?
+	// StateMachines by Id
 	stateMachines = make(map[string]*statemachine.StateMachine)
+	// StateMachine by CorrelationKey
+	stateMachinesCorrelationKey = make(map[string]*statemachine.StateMachine)
+
+	// Connect, Do I need to store the definition?
 
 	//client := redis.NewClient(&redis.Options{
 	//	Addr: "localhost:6379",
@@ -96,7 +103,6 @@ func initRedis(){
 	//if err := client.Ping().Err(); err != nil {
 	//
 	//}
-
 
 }
 
@@ -135,33 +141,82 @@ func StateMachineEventsHandler(writer http.ResponseWriter, request *http.Request
 	}
 
 	event.ExtensionAs(extension.StateMachineIdCloudEventsExtension, stateMachineExtension)
+	event.ExtensionAs(extension.CorrelationKeyCloudEventsExtension, stateMachineExtension)
 
-	stateMachineInstance := stateMachines[stateMachineExtension.StateMachineId]
 
-	stateMachineInstance.SendEvent(statemachine.EventType(event.Type()), eventContext)
+	stateMachineInstance := loadStateMachineInstanceById(stateMachineExtension.StateMachineId)
+	if stateMachineInstance != nil && stateMachineInstance.Id != "" {
+		stateMachineInstance.SendEvent(statemachine.EventType(event.Type()), eventContext)
+	} else {
+		fmt.Printf("StateMachineInstance %s not found, checking for correlationkey: %s \n", stateMachineExtension.StateMachineId, stateMachineExtension.CorrelationKey)
 
+		if stateMachineExtension.CorrelationKey != "" {
+			// Try loading from correlation key index
+			stateMachineInstance = loadStateMachineInstanceByCorrelationKey(stateMachineExtension.CorrelationKey)
+
+			if stateMachineInstance != nil && stateMachineInstance.Id != ""{
+				stateMachineInstance.SendEvent(statemachine.EventType(event.Type()), eventContext)
+			} else{
+				// if it doesn't exist let's create one with the provided correlation key
+				stateMachineInstance = newInstance(stateMachineExtension.CorrelationKey)
+
+				log.Printf("New StateMachineInstance: %s", stateMachineInstance.Id)
+				log.Printf("StateMachineInstance SINK Set to: %s", stateMachineInstance.SINK)
+
+				storeInstance(stateMachineInstance.Id, stateMachineInstance.CorrelationKey,  stateMachineInstance)
+
+				stateMachineInstance.SendEvent(statemachine.EventType(event.Type()), eventContext)
+			}
+
+		} else{
+			fmt.Printf("No correlation key provided, no instance available for event %s \n", event.Type())
+		}
+	}
+
+
+}
+
+func loadStateMachineInstanceById(id string) *statemachine.StateMachine {
+	return stateMachines[id]
+}
+
+func loadStateMachineInstanceByCorrelationKey(correlationKey string) *statemachine.StateMachine {
+	return stateMachinesCorrelationKey[correlationKey]
 }
 
 func StateMachinesNewHandler(writer http.ResponseWriter, request *http.Request) {
 	// Create a new instance using the States from the Definition
-	var stateMachine = statemachine.StateMachine{}
-	stateMachine.States = stateMachineDefinition.States
-	stateMachine.SINK = SINK
-	// Creating Instance Id
-	id, _ := uuid.NewUUID()
-	stateMachine.Id = id.String()
+	var stateMachine = newInstance("")
 
 	log.Printf("New StateMachineInstance: %s", stateMachine.Id)
 	log.Printf("StateMachineInstance SINK Set to: %s", stateMachine.SINK)
 
-	storeInstance(stateMachine.Id , &stateMachine)
+	storeInstance(stateMachine.Id, stateMachine.CorrelationKey, stateMachine)
 
 	respondWithJSON(writer, http.StatusOK, &stateMachine)
 
 }
 
-func storeInstance(stateMachineId string , stateMachine *statemachine.StateMachine){
-	stateMachines[stateMachineId] = stateMachine
+func newInstance(correlationKey string) *statemachine.StateMachine {
+	var stateMachine = statemachine.StateMachine{}
+	stateMachine.States = stateMachineDefinition.States
+	stateMachine.SINK = SINK
+	// Creating Instance Id
+	uuid, _ := uuid.NewUUID()
+	stateMachine.Id = uuid.String()
+	stateMachine.CorrelationKey = correlationKey
+
+	return &stateMachine
+}
+
+func storeInstance(stateMachineId string, stateMachineCorrelationKey string, stateMachine *statemachine.StateMachine) {
+	fmt.Printf("Trying to store instance with id: %s and correlationkey: %s \n", stateMachineId, stateMachineCorrelationKey)
+	if stateMachineId != "" {
+		stateMachines[stateMachineId] = stateMachine
+	}
+	if stateMachineCorrelationKey != "" {
+		stateMachinesCorrelationKey[stateMachineCorrelationKey] = stateMachine
+	}
 }
 
 func StateMachinesGETHandler(writer http.ResponseWriter, request *http.Request) {

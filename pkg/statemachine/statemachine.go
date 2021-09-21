@@ -65,6 +65,8 @@ type RunnerInfo struct {
 // StateMachine represents the state machine.
 type StateMachine struct {
 	Id string `json:"id"`
+
+	CorrelationKey string `json:"correlationkey"`
 	// Previous represents the previous state.
 	Previous StateType `json:"-"`
 

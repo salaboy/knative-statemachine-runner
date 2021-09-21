@@ -29,11 +29,16 @@ ko publish .
 ```
 
 
+
+
 # Example
+
+
+This example create a new State Machine instance by sending a POST request to the following endpoint
 ```
 curl -X POST http://localhost:8080/statemachines
 ```
-
+Once you have the Id of the State Machine Instance, then you can send events to that specific instance. 
 
 ```
 curl -X POST -H "Content-Type: application/json" \
@@ -45,3 +50,21 @@ curl -X POST -H "Content-Type: application/json" \
   -d '{"name":"Salaboy"}' \
   http://localhost:8080/statemachines/events
 ```
+
+Another option that might work better if you don't want to add an extra request to track the state of an existing flow is to use a `Correlation Key`. 
+
+In this case you don't need to create the instance, but you need to specify a correlation key that will be used for all the future events against that instance. 
+
+```
+curl -X POST -H "Content-Type: application/json" \
+  -H "ce-specversion: 1.0" \
+  -H "ce-source: curl-command" \
+  -H "ce-type: JoinedQueue" \
+  -H "ce-id: 123-abc" \
+  -H "ce-correlationkey: tickets-123" \
+  -d '{"name":"Salaboy"}' \
+  http://localhost:8080/statemachines/events
+```
+
+Now, `tickets-123` will be used as a correlation key to correlate future events. 
+
